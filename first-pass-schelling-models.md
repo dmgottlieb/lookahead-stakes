@@ -7,6 +7,9 @@ custom_css:
 - assets/css/index.css
 ---
 
+* TOC
+{:toc}
+
 # Baseline model
 
 The below is directly adapted from the *agentmodels* textbook ([here](http://agentmodels.org/chapters/7-multi-agent.html)), with some small tweaks: 
@@ -113,6 +116,119 @@ var d = Infer({method: 'enumerate'}, function(){
 viz.auto(d)
 ~~~~
 
+## Maximum a posteriori
+
+If Alice and Bob used MAP estimates from their predictive distributions, rather than samples, then they would always successfully coordinate.
+In fact, they could do this with only one recursive reasoning step. 
+
+~~~~
+///fold:
+var locationPrior = function() {
+  if (flip(.55)) {
+    return 'popular-bar';
+  } else {
+    return 'unpopular-bar';
+  }
+}
+
+var alice = function(depth) {
+  return Infer({ method: 'enumerate' }, function(){
+    var myLocation = locationPrior();
+    var bobLocation = sample(bob(depth - 1));
+    condition(myLocation === bobLocation);
+    return myLocation;
+  });
+};
+
+var bob = function(depth) {
+  return Infer({ method: 'enumerate' }, function(){
+    var myLocation = locationPrior();
+    if (depth === 0) {
+      return myLocation;
+    } else {
+      var aliceLocation = sample(alice(depth));
+      condition(myLocation === aliceLocation);
+      return myLocation;
+    }
+  });
+};
+///
+
+var depth = 1;
+
+var d = Infer({method: 'enumerate'}, function(){
+	return {
+		alice: alice(depth).MAP().val,
+		bob: bob(depth).MAP().val
+	}
+});
+
+viz.auto(d)
+~~~~
+
+## With multiple samples
+
+Another way that Alice and Bob could improve their performance would be to draw multiple samples from their predictive distribution. 
+In the limit of many samples, they would achieve the MAP estimate and always coordinate. 
+
+**NB: pretty sure this is not yet correct. It behaves strangely.** 
+
+~~~~
+///fold:
+var locationPrior = function() {
+  if (flip(.55)) {
+    return 'popular-bar';
+  } else {
+    return 'unpopular-bar';
+  }
+}
+
+var alice = function(depth) {
+
+    var myLocation = locationPrior();
+    var bobLocation = bob(depth - 1);
+    condition(myLocation === bobLocation);
+    return myLocation;
+};
+
+var bob = function(depth) {
+
+    var myLocation = locationPrior();
+    if (depth === 0) {
+      return myLocation;
+    } else {
+      var aliceLocation = alice(depth);
+      condition(myLocation === aliceLocation);
+      return myLocation;
+    }
+  
+};
+
+var decision = function(sampler, depth, numSamples) { 
+  var d = Infer({method: "forward", samples: numSamples}, function() {
+    return sampler(depth);
+  });
+  return d.MAP().val
+}
+
+///
+
+var depth = 1;
+var numSamples = 3;
+
+var d = Infer({method: 'rejection',samples: 2000}, function(){
+	return {
+		"alice": decision(alice,depth,numSamples),
+		"bob": decision(bob,depth,numSamples)
+	}
+});
+
+viz.auto(d)
+
+~~~~
+
+
+
 # Stochastic lookahead model 
 
 **NB: not at all confident this is correct.** 
@@ -157,3 +273,4 @@ var d = Infer({method: 'rejection', samples: 5000}, function(){
 
 viz.auto(d)
 ~~~~
+
