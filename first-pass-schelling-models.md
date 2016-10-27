@@ -231,9 +231,10 @@ viz.auto(d)
 
 # Stochastic lookahead model 
 
-**NB: not at all confident this is correct.** 
+**NB: I think this is correct but I'm not completely sure. Note also that some cases take a loooong time to run.** 
 
 ~~~~
+///fold: 
 var locationPrior = function() {
   if (flip(.55)) {
     return 'popular-bar';
@@ -242,32 +243,46 @@ var locationPrior = function() {
   }
 }
 
-var rate = 0.5;
+var opts = {method: "enumerate"};
 
-var alice = function() {
-
+var alice = function(depth,rate) {
+  return Infer(opts, function(){
     var myLocation = locationPrior();
-    var bobLocation = flip(rate) ? bob() : locationPrior();
-    condition(myLocation === bobLocation);
-    return myLocation;
+    if (depth === 0) {
+      return myLocation;
+    } else if (!flip(rate)) {
+      return sample(alice(depth-1,rate));
+    } else {
+      var bobLocation = sample(bob(depth - 1,rate));
+      condition(myLocation === bobLocation);
+      return myLocation;
+    }
+  });
 };
 
-var bob = function() {
-
+var bob = function(depth,rate) {
+  return Infer(opts, function(){
     var myLocation = locationPrior();
-      var aliceLocation = flip(rate) ? alice() : locationPrior();
+    if (depth === 0) {
+      return myLocation;
+    } else if (!flip(rate)) {
+      return sample(bob(depth-1,rate));
+    } else {
+      var aliceLocation = sample(alice(depth-1,rate));
       condition(myLocation === aliceLocation);
       return myLocation;
-    
-  
+    }
+  });
 };
+///
 
+var depth = 5;
+var rate = 0.9;
 
-
-var d = Infer({method: 'rejection', samples: 5000}, function(){
+var d = Infer({method: 'enumerate'}, function(){
 	return {
-		alice: alice(),
-		bob: bob()
+		alice: sample(alice(depth,rate)),
+		bob: sample(bob(depth,rate))
 	}
 });
 
