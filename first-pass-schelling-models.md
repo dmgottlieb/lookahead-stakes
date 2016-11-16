@@ -33,9 +33,13 @@ var locationPrior = function() {
 var alice = function(depth) {
   return Infer({ method: 'enumerate' }, function(){
     var myLocation = locationPrior();
-    var bobLocation = sample(bob(depth - 1));
-    condition(myLocation === bobLocation);
-    return myLocation;
+    if (depth === 0) {
+      return myLocation;
+    } else {
+      var bobLocation = sample(bob(depth - 1));
+      condition(myLocation === bobLocation);
+      return myLocation;
+    }
   });
 };
 
@@ -45,20 +49,20 @@ var bob = function(depth) {
     if (depth === 0) {
       return myLocation;
     } else {
-      var aliceLocation = sample(alice(depth));
+      var aliceLocation = sample(alice(depth-1));
       condition(myLocation === aliceLocation);
       return myLocation;
     }
   });
 };
 
-var depth = 5;
+var depth = 3;
 
 var d = Infer({method: 'enumerate'}, function(){
-	return {
-		alice: sample(alice(depth)),
-		bob: sample(bob(depth))
-	}
+  return {
+    alice: sample(alice(depth)),
+    bob: sample(bob(depth))
+  }
 });
 
 viz.auto(d)
@@ -289,3 +293,75 @@ var d = Infer({method: 'enumerate'}, function(){
 viz.auto(d)
 ~~~~
 
+# Lookahead-stakes model
+
+~~~~
+///fold: 
+var locationPrior = function() {
+  if (flip(.55)) {
+    return 'popular-bar';
+  } else {
+    return 'unpopular-bar';
+  }
+}
+
+var opts = {method: "enumerate"};
+
+var game = function(depth, rate, rewardFactor) {
+  var bobBar = sample(bob(depth,rate));
+  var aliceBar = sample(alice(depth, rate)); 
+  var payoff = (bobBar === aliceBar) ? 1 : 0
+  factor(rewardFactor * payoff) 
+  return {alice: aliceBar, bob: bobBar}
+}
+
+var alice = function(depth,rate) {
+  return Infer(opts, function(){
+    var myLocation = locationPrior();
+    if (depth === 0) {
+      return myLocation;
+    } else if (!flip(rate)) {
+      return sample(alice(depth-1,rate));
+    } else {
+      var bobLocation = sample(bob(depth - 1,rate));
+      condition(myLocation === bobLocation);
+      return myLocation;
+    }
+  });
+};
+
+var bob = function(depth,rate) {
+  return Infer(opts, function(){
+    var myLocation = locationPrior();
+    if (depth === 0) {
+      return myLocation;
+    } else if (!flip(rate)) {
+      return sample(bob(depth-1,rate));
+    } else {
+      var aliceLocation = sample(alice(depth-1,rate));
+      condition(myLocation === aliceLocation);
+      return myLocation;
+    }
+  });
+};
+///
+
+var depth = 5;
+var rate = 0.3;
+
+var d = Infer({method: 'enumerate'}, function(){
+  return {
+    alice: sample(alice(depth,rate)),
+    bob: sample(bob(depth,rate))
+  }
+});
+
+viz.auto(d)
+
+var d = Infer({method: 'enumerate'}, function(){
+  return game(depth, rate, 0.5)
+});
+
+viz.auto(d)
+
+~~~~
