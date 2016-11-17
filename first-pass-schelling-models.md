@@ -307,39 +307,39 @@ var locationPrior = function() {
 
 var opts = {method: "enumerate"};
 
-var game = function(depth, rate, rewardFactor) {
-  var bobBar = sample(bob(depth,rate));
-  var aliceBar = sample(alice(depth, rate)); 
-  var payoff = (bobBar === aliceBar) ? 1 : 0
-  factor(rewardFactor * payoff) 
+var game = function(depth, rate, alpha) {
+  var bobBar = sample(bob(depth,rate, alpha));
+  var aliceBar = sample(alice(depth, rate, alpha)); 
   return {alice: aliceBar, bob: bobBar}
 }
 
-var alice = function(depth,rate) {
+var alice = function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if (depth === 0) {
       return myLocation;
     } else if (!flip(rate)) {
-      return sample(alice(depth-1,rate));
+      return sample(alice(depth-1,rate, alpha));
     } else {
-      var bobLocation = sample(bob(depth - 1,rate));
-      condition(myLocation === bobLocation);
+      var bobLocation = sample(bob(depth - 1,rate, alpha));
+      var payoff = (myLocation === bobLocation) ? 1:0;
+      factor(alpha*payoff);
       return myLocation;
     }
   });
 };
 
-var bob = function(depth,rate) {
+var bob = function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if (depth === 0) {
       return myLocation;
     } else if (!flip(rate)) {
-      return sample(bob(depth-1,rate));
+      return sample(bob(depth-1,rate, alpha));
     } else {
-      var aliceLocation = sample(alice(depth-1,rate));
-      condition(myLocation === aliceLocation);
+      var aliceLocation = sample(alice(depth-1,rate, alpha));
+      var payoff = (myLocation === aliceLocation) ? 1:0;
+      factor(alpha*payoff);
       return myLocation;
     }
   });
@@ -348,20 +348,11 @@ var bob = function(depth,rate) {
 
 var depth = 5;
 var rate = 0.3;
+var alpha = 1;
 
 var d = Infer({method: 'enumerate'}, function(){
-  return {
-    alice: sample(alice(depth,rate)),
-    bob: sample(bob(depth,rate))
-  }
+  return game(depth, rate, alpha)
 });
 
 viz.auto(d)
-
-var d = Infer({method: 'enumerate'}, function(){
-  return game(depth, rate, 0.5)
-});
-
-viz.auto(d)
-
 ~~~~
