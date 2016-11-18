@@ -298,7 +298,7 @@ viz.auto(d)
 ~~~~
 ///fold: 
 var locationPrior = function() {
-  if (flip(.55)) {
+  if (flip(.51)) {
     return 'popular-bar';
   } else {
     return 'unpopular-bar';
@@ -306,6 +306,27 @@ var locationPrior = function() {
 }
 
 var opts = {method: "enumerate"};
+
+var utility = function(agent, aliceBar, bobBar) {
+  if (agent == 'alice') {
+    var values = {
+      'popular-bar-popular-bar' : 3.6,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 3
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+  if (agent == 'bob') {
+    var values = {
+      'popular-bar-popular-bar' : 3,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 3.6
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+}
 
 var game = function(depth, rate, alpha) {
   var bobBar = sample(bob(depth,rate, alpha));
@@ -322,8 +343,9 @@ var alice = function(depth,rate, alpha) {
       return sample(alice(depth-1,rate, alpha));
     } else {
       var bobLocation = sample(bob(depth - 1,rate, alpha));
-      var payoff = (myLocation === bobLocation) ? 1:0;
-      factor(alpha*payoff);
+      var payoff = utility('alice', myLocation, bobLocation);
+      var recursionCost = 0.6; 
+      factor(alpha*(payoff - recursionCost));
       return myLocation;
     }
   });
@@ -338,8 +360,9 @@ var bob = function(depth,rate, alpha) {
       return sample(bob(depth-1,rate, alpha));
     } else {
       var aliceLocation = sample(alice(depth-1,rate, alpha));
-      var payoff = (myLocation === aliceLocation) ? 1:0;
-      factor(alpha*payoff);
+      var payoff = utility('bob', aliceLocation, myLocation);
+      var recursionCost = 0.2; 
+      factor(alpha*(payoff - recursionCost));
       return myLocation;
     }
   });
@@ -347,7 +370,7 @@ var bob = function(depth,rate, alpha) {
 ///
 
 var depth = 5;
-var rate = 0.3;
+var rate = 0.5;
 var alpha = 1;
 
 var d = Infer({method: 'enumerate'}, function(){
