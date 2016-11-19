@@ -10,3 +10,4 @@ custom_css:
 # Contents
 
 * [First-pass Schelling models]({{site.baseurl}}/first-pass-schelling-models.html)
+* [Models section]({{site.baseurl}}/model-section.html)

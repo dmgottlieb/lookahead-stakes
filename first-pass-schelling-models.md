@@ -298,7 +298,7 @@ viz.auto(d)
 ~~~~
 ///fold: 
 var locationPrior = function() {
-  if (flip(.51)) {
+  if (flip(.55)) {
     return 'popular-bar';
   } else {
     return 'unpopular-bar';
@@ -306,6 +306,7 @@ var locationPrior = function() {
 }
 
 var opts = {method: "enumerate"};
+var recursionCost = 0; 
 
 var utility = function(agent, aliceBar, bobBar) {
   if (agent == 'alice') {
@@ -337,15 +338,12 @@ var game = function(depth, rate, alpha) {
 var alice = function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
-    if (depth === 0) {
+    if ((depth === 0) || (!flip(rate))) {
       return myLocation;
-    } else if (!flip(rate)) {
-      return sample(alice(depth-1,rate, alpha));
     } else {
       var bobLocation = sample(bob(depth - 1,rate, alpha));
       var payoff = utility('alice', myLocation, bobLocation);
-      var recursionCost = 0.6; 
-      factor(alpha*(payoff - recursionCost));
+      factor(alpha*(payoff));
       return myLocation;
     }
   });
@@ -354,15 +352,12 @@ var alice = function(depth,rate, alpha) {
 var bob = function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
-    if (depth === 0) {
+    if ((depth === 0) || (!flip(rate))) {
       return myLocation;
-    } else if (!flip(rate)) {
-      return sample(bob(depth-1,rate, alpha));
     } else {
       var aliceLocation = sample(alice(depth-1,rate, alpha));
       var payoff = utility('bob', aliceLocation, myLocation);
-      var recursionCost = 0.2; 
-      factor(alpha*(payoff - recursionCost));
+      factor(alpha*(payoff));
       return myLocation;
     }
   });
