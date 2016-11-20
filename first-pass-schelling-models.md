@@ -329,21 +329,23 @@ var utility = function(agent, aliceBar, bobBar) {
 }
 
 var game = function(depth, rate, alpha) {
-  var bobBar = sample(bob(depth,rate, alpha));
-  var aliceBar = sample(alice(depth, rate, alpha)); 
-  return {alice: aliceBar, bob: bobBar}
+  var bobAction = sample(bob(depth,rate, alpha));
+  var aliceAction = sample(alice(depth, rate, alpha)); 
+  return {//aliceBar: aliceAction.myLocation, bobBar: bobAction.myLocation, 
+    aliceDepth: depth - aliceAction.levelsLeft, 
+    bobDepth: depth - bobAction.levelsLeft}
 }
 
 var alice = function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if ((depth === 0) || (!flip(rate))) {
-      return myLocation;
+      return {'myLocation': myLocation, 'levelsLeft': depth};
     } else {
-      var bobLocation = sample(bob(depth - 1,rate, alpha));
-      var payoff = utility('alice', myLocation, bobLocation);
+      var bobAction = sample(bob(depth - 1,rate, alpha));
+      var payoff = utility('alice', myLocation, bobAction.myLocation);
       factor(alpha*(payoff));
-      return myLocation;
+      return bobAction;
     }
   });
 };
@@ -352,12 +354,12 @@ var bob = function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if ((depth === 0) || (!flip(rate))) {
-      return myLocation;
+      return {'myLocation': myLocation, 'levelsLeft': depth};
     } else {
-      var aliceLocation = sample(alice(depth-1,rate, alpha));
-      var payoff = utility('bob', aliceLocation, myLocation);
+      var aliceAction = sample(alice(depth-1,rate, alpha));
+      var payoff = utility('bob', aliceAction.myLocation, myLocation);
       factor(alpha*(payoff));
-      return myLocation;
+      return aliceAction;
     }
   });
 };
