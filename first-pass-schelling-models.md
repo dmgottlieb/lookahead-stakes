@@ -306,7 +306,6 @@ var locationPrior = function() {
 }
 
 var opts = {method: "enumerate"};
-var recursionCost = 0; 
 
 var utility = function(agent, aliceBar, bobBar) {
   if (agent == 'alice') {
