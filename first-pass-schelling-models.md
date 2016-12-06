@@ -298,7 +298,7 @@ viz.auto(d)
 ~~~~
 ///fold: 
 var locationPrior = function() {
-  if (flip(.55)) {
+  if (flip(.65)) {
     return 'popular-bar';
   } else {
     return 'unpopular-bar';
@@ -331,7 +331,7 @@ var utility = function(agent, aliceBar, bobBar) {
 var game = function(depth, rate, alpha) {
   var bobAction = sample(bob(depth,rate, alpha));
   var aliceAction = sample(alice(depth, rate, alpha)); 
-  return {//aliceBar: aliceAction.myLocation, bobBar: bobAction.myLocation, 
+  return {aliceBar: aliceAction.myLocation, bobBar: bobAction.myLocation, 
     aliceDepth: depth - aliceAction.levelsLeft, 
     bobDepth: depth - bobAction.levelsLeft}
 }
@@ -366,12 +366,23 @@ var bob = function(depth,rate, alpha) {
 ///
 
 var depth = 5;
-var rate = 0.5;
-var alpha = 1;
+var rate = 0.2;
+var alpha = 0.5;
 
 var d = Infer({method: 'enumerate'}, function(){
-  return game(depth, rate, alpha)
+  var o = game(depth, rate, alpha); 
+  var success = (o.aliceBar === o.bobBar);
+  var levels = Math.max(o.aliceDepth, o.bobDepth);
+  return {success: success, levels: levels};
 });
 
 viz.auto(d)
+
+var d = Infer({method: 'enumerate'}, function(){
+  var o = game(depth, rate, alpha); 
+  var success = (o.aliceBar === o.bobBar);
+  return success;
+});
+
+print("" + 100*Math.exp(d.score(true)) + "%")
 ~~~~
