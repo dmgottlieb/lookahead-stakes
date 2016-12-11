@@ -11,3 +11,4 @@ custom_css:
 
 * [First-pass Schelling models]({{site.baseurl}}/first-pass-schelling-models.html)
 * [Models section]({{site.baseurl}}/model-section.html)
+* [Bayesian Data Analysis]({{site.baseurl}}/bayesian-data-analysis.html)
