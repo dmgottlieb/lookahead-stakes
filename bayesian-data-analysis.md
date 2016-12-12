@@ -113,7 +113,7 @@ var game = function(depth, params,utility) {
     bobDepth: depth - bobAction.levelsLeft}
 }
 
-var alice = function(depth,params,utility) {
+var alice = dp.cache(function(depth,params,utility) {
   return Infer(innerOpts, function(){
     var myLocation = locationPrior(params['locationPriorRate']);
     if ((depth === 0) || (!flip(params['rate']))) {
@@ -122,12 +122,12 @@ var alice = function(depth,params,utility) {
       var bobAction = sample(bob(depth - 1,params,utility));
       var payoff = utility('alice', myLocation, bobAction.myLocation);
       factor(params['alpha']*(payoff));
-      return bobAction;
+      return {'myLocation': myLocation, 'levelsLeft': depth};
     }
   });
-};
+});
 
-var bob = function(depth,params,utility) {
+var bob = dp.cache(function(depth,params,utility) {
   return Infer(innerOpts, function(){
     var myLocation = locationPrior(params['locationPriorRate']);
     if ((depth === 0) || (!flip(params['rate']))) {
@@ -137,10 +137,10 @@ var bob = function(depth,params,utility) {
       var payoff = utility('bob', aliceAction.myLocation, myLocation);
       
       factor(params['alpha']*(payoff));
-      return aliceAction;
+      return {'myLocation': myLocation, 'levelsLeft': depth};
     }
   });
-};
+});
 ///
 
 var opts = {method: 'MCMC', samples: 5000, callbacks: [editor.MCMCProgress()]};
