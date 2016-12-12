@@ -17,9 +17,6 @@ The below is directly adapted from the *agentmodels* textbook ([here](http://age
 * sample both Alice and Bob's recursive models and return the joint distribution,
 * both Alice and Bob reason to the depth given by the `depth` variable. 
 
-(Also: a limitation of this implementation is that it doesn't use `dp.cache` from the `webppl-dp` module by Stuhlmüller. 
-The built-in `mem` function won't work in mutual recursion. 
-In complex deep recursions, this could be a real hit to efficiency, but it doesn't seem to matter here.)
 
 ~~~~
 var locationPrior = function() {
