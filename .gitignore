@@ -4,3 +4,4 @@ _site
 _corn
 _prod
 bower_components
+*.RData
