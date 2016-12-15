@@ -337,6 +337,9 @@ var alice = dp.cache(function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if ((depth === 0) || (!flip(rate))) {
+      var bobLocation = locationPrior();
+      var payoff = utility('alice', myLocation, bobLocation);
+      if (!(depth === 0)) {factor(alpha*(payoff));}
       return {'myLocation': myLocation, 'levelsLeft': depth};
     } else {
       var bobAction = sample(bob(depth - 1,rate, alpha));
@@ -351,6 +354,9 @@ var bob = dp.cache(function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if ((depth === 0) || (!flip(rate))) {
+      var aliceLocation = locationPrior();
+      var payoff = utility('bob', aliceLocation, myLocation);
+      if (!(depth === 0)) {factor(alpha*(payoff));}
       return {'myLocation': myLocation, 'levelsLeft': depth};
     } else {
       var aliceAction = sample(alice(depth-1,rate, alpha));
@@ -362,7 +368,7 @@ var bob = dp.cache(function(depth,rate, alpha) {
 });
 ///
 
-var depth = 5;
+var depth = 1;
 var rate = 0.2;
 var alpha = 0.5;
 
