@@ -1,0 +1,158 @@
+var locationPrior = function(rate) {
+  if (flip(rate)) {
+    return 'popular-bar';
+  } else {
+    return 'unpopular-bar';
+  }
+}
+
+var innerOpts = {method: "enumerate"};
+
+var utilityLowSym = function(agent, aliceBar, bobBar) {
+  if (agent == 'alice') {
+    var values = {
+      'popular-bar-popular-bar' : 5,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 5
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+  if (agent == 'bob') {
+    var values = {
+      'popular-bar-popular-bar' : 5,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 5
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+}
+
+var utilityHighSym = function(agent, aliceBar, bobBar) {
+  if (agent == 'alice') {
+    var values = {
+      'popular-bar-popular-bar' : 15,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 15
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+  if (agent == 'bob') {
+    var values = {
+      'popular-bar-popular-bar' : 15,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 15
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+}
+
+var utilityLowAsym = function(agent, aliceBar, bobBar) {
+  if (agent == 'alice') {
+    var values = {
+      'popular-bar-popular-bar' : 5,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 6
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+  if (agent == 'bob') {
+    var values = {
+      'popular-bar-popular-bar' : 6,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 5
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+}
+
+var utilityHighAsym = function(agent, aliceBar, bobBar) {
+  if (agent == 'alice') {
+    var values = {
+      'popular-bar-popular-bar' : 15,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 18
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+  if (agent == 'bob') {
+    var values = {
+      'popular-bar-popular-bar' : 18,
+      'popular-bar-unpopular-bar' : 0,
+      'unpopular-bar-popular-bar' : 0,
+      'unpopular-bar-unpopular-bar' : 15
+    };
+    return values[aliceBar + "-" + bobBar];
+  }
+}
+
+
+
+var game = function(depth, params,utility) {
+    var bobAction = sample(bob(depth,params,utility));
+    var aliceAction = sample(alice(depth, params,utility)); 
+    return {aliceBar: aliceAction.myLocation, bobBar: bobAction.myLocation, 
+    aliceDepth: depth - aliceAction.levelsLeft, 
+    bobDepth: depth - bobAction.levelsLeft};
+}
+
+var alice = dp.cache(function(depth,params,utility) {
+  return Infer(innerOpts, function(){
+    var myLocation = locationPrior(params['locationPriorRate']);
+    if ((depth === 0) || (!flip(params['rate']))) {
+      return {'myLocation': myLocation, 'levelsLeft': depth};
+    } else {
+      var bobAction = sample(bob(depth - 1,params,utility));
+      var payoff = utility('alice', myLocation, bobAction.myLocation);
+      factor(params['alpha']*(payoff));
+      return {'myLocation': myLocation, 'levelsLeft': bobAction.levelsLeft};
+    }
+  });
+});
+
+var bob = dp.cache(function(depth,params, utility) {
+  return Infer(innerOpts, function(){
+    var myLocation = locationPrior(params['locationPriorRate']);
+    if ((depth === 0) || (!flip(params['rate']))) {
+      return {'myLocation': myLocation, 'levelsLeft': depth};
+    } else {
+      var aliceAction = sample(alice(depth - 1,params,utility));
+      var payoff = utility('bob', aliceAction.myLocation, myLocation);
+      factor(params['alpha']*(payoff));
+      return {'myLocation': myLocation, 'levelsLeft': aliceAction.levelsLeft};
+    }
+  });
+});
+///
+
+var depth = 5; 
+var opts = {method: 'MCMC', samples: 1000};
+
+var predictiveModel = Infer(opts, function() {
+  var params = {
+    rate: sample(dist).rate,
+    alpha: sample(dist).alpha,
+    locationPriorRate: sample(dist).locationPriorRate 
+  };
+
+  var o = game(depth, params, utilityLowSym);
+
+  var success = (o.aliceBar === o.bobBar);
+  var levels = Math.max(o.aliceDepth, o.bobDepth);
+  return {success: success, 
+    levels: levels, 
+    rate: params['rate'], 
+    alpha: params['alpha'], 
+    locationPriorRate: params['locationPriorRate']};
+});
+
+predictiveModel()
+
+
+

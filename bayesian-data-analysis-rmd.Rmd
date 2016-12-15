@@ -1,0 +1,41 @@
+---
+title: 'Resource-rational coordination games: Bayesian Data Analysis'
+author: "Michael Cohen, Dave Gottlieb, Francesca Zaffora Blando"
+date: "12/14/2016"
+output: html_document
+---
+
+```{r}
+library(knitr)
+knitr::opts_chunk$set(fig.crop = F,echo=T, 
+                      warning=F, cache=F, 
+                      message=F, sanitize = T)
+
+library(rwebppl)
+library(dplyr)
+```
+
+Having established the basic properties of our model, we proceed to "fit" our model to the experimental results obtained by @parravano using Bayesian data analysis. 
+We begin by specifying our uncertainty over the free parameters of our model, `rate`, `alpha`, and `locationPrior` 
+
+```{r}
+posterior <- webppl(program_file = "~/lookahead-stakes/bayesian-data-analysis.wppl", packages = c("webppl-dp", "webppl-bda"))
+
+mean(posterior$value.successLowSym)
+mean(posterior$value.successLowAsym)
+mean(posterior$value.successHighSym)
+mean(posterior$value.successHighAsym)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(posterior$value.alpha, posterior$value.levelsLowSym, xlab = "Alpha parameter", ylab = "Average recursion depth")
+plot(posterior$value.levelsLowSym, posterior$value.successLowSym, main = "Success versus recursion depth", xlab = "Average recursion depth", ylab = "Success rate")
+
+ggplot(posterior, aes(x = value.alpha, y = value.rate))+geom_bin2d(drop=FALSE)
+ggplot(posterior, aes(x = value.locationPriorRate, y = value.alpha))+geom_bin2d(drop=FALSE)
+ggplot(posterior, aes(x = value.rate, y = value.locationPriorRate))+geom_bin2d(drop=FALSE)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

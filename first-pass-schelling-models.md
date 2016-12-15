@@ -333,7 +333,7 @@ var game = function(depth, rate, alpha) {
     bobDepth: depth - bobAction.levelsLeft}
 }
 
-var alice = function(depth,rate, alpha) {
+var alice = dp.cache(function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if ((depth === 0) || (!flip(rate))) {
@@ -342,12 +342,12 @@ var alice = function(depth,rate, alpha) {
       var bobAction = sample(bob(depth - 1,rate, alpha));
       var payoff = utility('alice', myLocation, bobAction.myLocation);
       factor(alpha*(payoff));
-      return bobAction;
+      return {'myLocation': myLocation, 'levelsLeft': bobAction.levelsLeft};
     }
   });
-};
+});
 
-var bob = function(depth,rate, alpha) {
+var bob = dp.cache(function(depth,rate, alpha) {
   return Infer(opts, function(){
     var myLocation = locationPrior();
     if ((depth === 0) || (!flip(rate))) {
@@ -356,10 +356,10 @@ var bob = function(depth,rate, alpha) {
       var aliceAction = sample(alice(depth-1,rate, alpha));
       var payoff = utility('bob', aliceAction.myLocation, myLocation);
       factor(alpha*(payoff));
-      return aliceAction;
+      return {'myLocation': myLocation, 'levelsLeft': aliceAction.levelsLeft};
     }
   });
-};
+});
 ///
 
 var depth = 5;
